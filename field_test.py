@@ -6,7 +6,7 @@ class TestBinaryFiniteField(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.field_ = []
-        for n in range(2, 8):
+        for n in range(1, 8):
             cls.field_.append(field.BinaryFiniteField(n))
 
     def test_add(self):

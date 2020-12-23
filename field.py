@@ -1,15 +1,17 @@
 class BinaryFiniteField:
-    """2^n extension finite field for n in [2, 7]."""
+    """2^n extension finite field for n in [1, 7]."""
 
     def __init__(self, n):
         """2^n field. """
 
-        assert n in range(2, 9), "n must be in [2, 7]"
+        assert n in range(1, 8), "n must be in [1, 7]"
         self.n_ = n
         self.order_ = 1 << n
 
         # Irreducible polynomial for mod multiplication.
-        if n == 2:
+        if n == 1:
+            pass
+        elif n == 2:
             self.divisor_ = 7  # 1 + x + x^2
         elif n == 3:
             self.divisor_ = 11  # 1 + x + x^3
@@ -41,6 +43,10 @@ class BinaryFiniteField:
         return self.add(a, self.negate(b))
 
     def multiply(self, a, b):
+        if self.n_ == 1:
+            return self.validated(self.validated(a) * self.validated(b))
+
+        # n > 1
         self.validated(a)
         result = 0
         bin_b = bin(self.validated(b))[2:]  # remove the '0b' prefix
