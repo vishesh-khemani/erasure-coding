@@ -111,8 +111,10 @@ class Matrix:
         return result
 
     def binary_rep(self):
-        result = Matrix(self.num_rows() * self.n_, self.num_cols() * self.n_,
-                        field.BinaryFiniteField(1))
+        result = Matrix(
+            self.num_rows() * self.field_.n_,
+            self.num_cols() * self.field_.n_,
+            field.BinaryFiniteField(1))
         for r in range(self.num_rows()):
             for c in range(self.num_cols()):
                 a = self.get_element(r, c)
@@ -120,6 +122,6 @@ class Matrix:
                 for i in range(self.field_.n_):
                     for j in range(self.field_.n_):
                         result.set_element(
-                            r * self.field_.n_, c * self.field_.n_,
+                            r * self.field_.n_ + i, c * self.field_.n_ + j,
                             result.field_.validated(mat_a[i][j]))
         return result
