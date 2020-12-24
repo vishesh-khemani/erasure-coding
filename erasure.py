@@ -114,13 +114,65 @@ if __name__ == '__main__':
     parser.add_argument('-N', type=int, help='# code chunks in a block')
     parser.add_argument('-K', type=int, help='# data chunks in a block')
     parser.add_argument('-w', type=int, help='# bytes in a word in a chunk')
+    parser.add_argument('--data_fifo',
+                        help='name of data fifo stream')
+    parser.add_argument('--code_fifo_prefix',
+                        help='prefix of code fifo streams')
     args = parser.parse_args()
 
-    ec = ErasureCode(args.N, args.K, args.w)
+    try:
+        os.mkfifo(args.data_fifo)
+    except FileExistsError:
+        pass
+
+    ec = ErasureCoder(args.N, args.K, args.w)
     if args.command == 'encode':
-        ec.encode()
+        print("Listening for data on fifo stream '{0}'".format(args.data_fifo))
+        for i in range(ec.N_):
+            name = '{0}_{1}'.format(args.code_fifo_prefix, i)
+            print("Writing code shard {0} on fifo stream '{1}'".format(i, name))
+
+        data_fifo = open(args.data_fifo, "rb")
+        print("Data fifo stream is open.")
+        code_fifos = []
+        for i in range(ec.N_):
+            name = '{0}_{1}'.format(args.code_fifo_prefix, i)
+            try:
+                os.mkfifo(name)
+            except FileExistsError:
+                pass
+            code_fifos.append(open(name, "wb"))
+            print("Code fifo stream for shard {0} is open".format(i))
+
+        print("Starting encode.")
+        size = ec.encode(data_fifo, code_fifos)
+        data_fifo.close()
+        for i in range(ec.N_):
+            code_fifos[i].close()
+        print("Finished encoding {0} bytes.".format(size))
     elif args.command.startswith('decode'):
         excluded_shards = [int(index) for index in args.command.split('_')[1:]]
-        ec.decode(excluded_shards)
+        print("Writing decoded data on fifo stream '{0}'".format(args.data_fifo))
+        for i in range(ec.N_):
+            if i in excluded_shards:
+                continue
+            name = '{0}_{1}'.format(args.code_fifo_prefix, i)
+            print("Reading code shard {0} on fifo stream '{1}'".format(i, name))
+        data_fifo = open(args.data_fifo, "wb")
+        print("Data fifo stream is open.")
+        code_fifos = []
+        for i in range(ec.N_):
+            if i in excluded_shards:
+                continue
+            name = '{0}_{1}'.format(args.code_fifo_prefix, i)
+            try:
+                os.mkfifo(name)
+            except FileExistsError:
+                pass
+            code_fifos.append(open(name, "rb"))
+            print("Code fifo stream for shard {0} is open".format(i))
+        print("Starting decode.")
+        size = ec.decode(excluded_shards, code_fifos, data_fifo)
+        print("Finished decoding {0} bytes.".format(size))
     else:
         print("Invalid command")
